@@ -1,0 +1,150 @@
+/* ===== 交換日記アプリ 共通スタイル(ログイン・新規登録で共有) ===== */
+:root {
+  --leather: #6b3f22;      /* 革表紙の茶色 */
+  --leather-dark: #4a2815; /* 文字・濃い茶色 */
+  --page: #fbf0dc;         /* ページの色 */
+  --field: #fcf4e4;        /* 入力欄の背景 */
+  --line: #b08a65;         /* 入力欄の枠線 */
+  --hint: #8a7058;         /* プレースホルダー */
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif;
+  color: var(--leather-dark);
+  background: linear-gradient(#f9ecd0, #fbf3e0 40%, #f1dcb5);
+}
+
+/* 背表紙(カードの後ろからのぞく本) */
+.spine {
+  border-radius: 4px 4px 0 0;
+  box-shadow: inset 0 -3px 0 rgba(255, 255, 255, 0.25), 2px 0 3px rgba(74, 40, 21, 0.25);
+}
+
+/* 革表紙のカード */
+.book-card {
+  position: relative;
+  z-index: 1;
+  border: 9px solid var(--leather);
+  border-radius: 28px;
+  background: var(--leather);
+  box-shadow: 0 18px 30px rgba(90, 50, 20, 0.35);
+}
+.book-page {
+  border-radius: 19px;
+  padding: 32px 24px 28px;
+  background: var(--page);
+  box-shadow: -5px 0 0 #ecd9b0, inset 0 0 22px rgba(176, 138, 101, 0.25);
+}
+
+.page-title {
+  margin: 0;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+}
+
+/* ひし形つきの区切り線 */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0;
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--leather);
+  opacity: 0.6;
+}
+.divider i {
+  width: 8px;
+  height: 8px;
+  background: var(--leather);
+  transform: rotate(45deg);
+}
+
+/* 入力欄 */
+.field {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: 56px;
+  padding: 0 14px;
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  background: var(--field);
+  color: var(--leather);
+}
+.field:focus-within {
+  outline: 3px solid var(--leather);
+  outline-offset: 2px;
+}
+.field input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: inherit;
+  font-size: 16px; /* 16px未満だとiPhoneで入力時に拡大される */
+  color: var(--leather-dark);
+}
+.field input::placeholder {
+  color: var(--hint);
+  letter-spacing: 0.08em;
+}
+.eye-btn {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin-right: -8px;
+  border: 0;
+  background: transparent;
+  color: var(--hint);
+  cursor: pointer;
+}
+
+/* ボタン */
+.btn-primary {
+  width: 100%;
+  height: 56px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(#7a4a29, #5e3519);
+  color: var(--page);
+  font: inherit;
+  font-size: 18px;
+  letter-spacing: 0.3em;
+  box-shadow: 0 4px 0 #3b2212, 0 8px 14px rgba(74, 40, 21, 0.3);
+  cursor: pointer;
+}
+.btn-primary:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #3b2212;
+}
+.btn-primary:focus-visible,
+.text-link:focus-visible,
+.eye-btn:focus-visible {
+  outline: 3px solid var(--leather);
+  outline-offset: 3px;
+}
+
+/* 下線つきリンク */
+.text-link {
+  color: var(--leather-dark);
+  letter-spacing: 0.08em;
+  text-decoration: underline;
+  text-underline-offset: 6px;
+}
+
+.error-text {
+  margin: 0;
+  color: #9b2c2c;
+  font-size: 14px;
+}
