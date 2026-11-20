@@ -41,6 +41,6 @@
       </section>
     </div>
   </main>
-  <script src="{{ asset('js/auth.js') }}"></script>
+  <script src="{{ asset('js/Auth.js') }}"></script>
 </body>
 </html>

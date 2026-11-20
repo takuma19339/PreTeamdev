@@ -10,21 +10,21 @@ return new class extends Migration
      * Run the migrations.
      */
     public function up(): void
-    {
-        Schema::create('choices', function (Blueprint $table) {
+        {
+            Schema::create('book_user', function (Blueprint $table) {
             $table->id();
-            $table->string('choice');
-            $table->boolean('is_correct');
-            $table->foreignId('quiz_id')->constrained();
+            $table->foreignId('book_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->timestamps();
-        });
-    }
+            $table->unique(['book_id', 'user_id']);  // 二重参加を防ぐ
+            });
+        }
 
     /**
      * Reverse the migrations.
      */
     public function down(): void
     {
-        Schema::dropIfExists('choices');
+        Schema::dropIfExists('book_user');
     }
 };

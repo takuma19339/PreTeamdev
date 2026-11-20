@@ -34,7 +34,7 @@ class LoginController extends Controller
         $request->session()->regenerate();
 
         // ログイン前に開こうとしていたページがあればそこへ、なければ本棚へ
-        return redirect()->intended(route('bookshelf'));
+        return redirect()->intended(route('bookshells.index'));
     }
 
     // ログアウトする

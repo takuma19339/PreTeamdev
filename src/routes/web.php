@@ -1,25 +1,30 @@
 <?php
-
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\RegisterController;
+use App\Http\Controllers\BookshellController;
+use App\Http\Controllers\DiaryController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');
 
-// ログインしていない人だけが見られるページ
 Route::middleware('guest')->group(function () {
     Route::get('/register', [RegisterController::class, 'create'])->name('register');
     Route::post('/register', [RegisterController::class, 'store']);
 
     Route::get('/login', [LoginController::class, 'create'])->name('login');
-    // 総当たり攻撃を防ぐため、1分間に5回までにする
     Route::post('/login', [LoginController::class, 'store'])->middleware('throttle:5,1');
 });
 
-// ログインしている人だけが見られるページ
 Route::middleware('auth')->group(function () {
-    // TODO: 本棚の画面ができたら、ここをコントローラーに置き換える
-    Route::get('/bookshelf', fn () => '本棚の画面がここに入ります')->name('bookshelf');
+    Route::get('/bookshells', [BookshellController::class, 'index'])->name('bookshells.index');
+    Route::post('/bookshells', [BookshellController::class, 'store'])->name('bookshells.store');
+    Route::post('/bookshells/join/check', [BookshellController::class, 'joinCheck'])->name('bookshells.join.check');
+    Route::post('/bookshells/join', [BookshellController::class, 'join'])->name('bookshells.join');
+    Route::delete('/bookshells', [BookshellController::class, 'destroy'])->name('bookshells.destroy');
 
-    Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+    // 本ごとの手帳(本棚の本を押すと開く)
+    Route::get('/bookshells/{book}', [DiaryController::class, 'show'])
+    ->whereNumber('book')
+    ->name('diary.show');
 });
+

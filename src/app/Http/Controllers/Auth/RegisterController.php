@@ -25,7 +25,6 @@ class RegisterController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             // confirmed: 「password_confirmation」欄と同じ値かを確認してくれる
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'terms' => ['accepted'],
         ]);
 
         // User モデルの casts で password は自動的にハッシュ化される
@@ -38,6 +37,6 @@ class RegisterController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('bookshelf');
+        return redirect()->route('bookshells.index');
     }
 }

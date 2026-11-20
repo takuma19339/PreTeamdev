@@ -17,7 +17,6 @@
   </form>
 
   <div class="divider mt-6"><i></i></div>
-  <p class="text-center"><a href="#" class="text-link inline-flex min-h-11 items-center">パスワードを忘れた方はこちら ›</a></p>
 
   <div class="mt-6 flex items-center gap-6 rounded-2xl border border-[#b08a65] bg-[#fcf4e4] px-6 py-4">
     <svg width="48" height="48" viewBox="0 0 48 48" fill="#6b3f22" aria-hidden="true"><path d="M40 6C26 6 16 14 14 28l-6 12 2 1 5-8c2 1 5 1 8 0 10-3 16-12 17-27Z"/></svg>
