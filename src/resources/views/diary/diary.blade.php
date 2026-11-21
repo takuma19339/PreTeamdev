@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $book->title }} | 日記</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,7 +23,9 @@
     {{-- ヘッダー --}}
     <header class="flex items-center justify-between gap-3">
         <a href="{{ route('bookshells.index') }}" class="shrink-0 text-sm tracking-widest text-[#8a6a4a]">← 本棚</a>
-        <span class="truncate rounded-xl bg-[#d4d4d8] px-5 py-1.5 text-lg">{{ $book->title }}</span>
+        <span class="min-w-0 truncate rounded-xl bg-[#d4d4d8] px-5 py-1.5 text-lg">{{ $book->title }}</span>
+        <button type="button" @click="inviteOpen = true" aria-haspopup="dialog"
+                class="shrink-0 rounded-full border border-[#b07a4a] px-3 py-1 text-xs tracking-widest text-[#8a6a4a] transition hover:bg-[#d6c28f]/60">招待</button>
     </header>
 
     {{-- 手帳本体 --}}
@@ -51,7 +54,10 @@
                                     <span x-text="label(date)"></span>
                                     <span class="text-xs text-[#8a6a4a]">▾</span>
                                 </button>
-                                <p class="mt-1 text-xs"><span x-text="currentMember.name"></span>の日記</p>
+                                <p class="mt-1 text-xs">
+                                    <span x-text="currentMember.name"></span>の日記
+                                    <span class="ml-2 text-[10px] text-[#8a6a4a]" x-show="editable && saveLabel" x-text="saveLabel"></span>
+                                </p>
                             </div>
 
                             {{-- 心の天気(自分の日記だけ選べる) --}}
@@ -74,7 +80,7 @@
                             :readonly="!editable"
                             :placeholder="editable ? 'きょうのできごとを書こう' : 'まだ書かれていません'"
                             :value="current.body"
-                            @input="ensure().body = $event.target.value; fit($event.target)"
+                            @input="ensure().body = $event.target.value; fit($event.target); queueSave()"
                             :aria-label="currentMember.name + 'の日記'"
                             class="mt-2 block h-[168px] min-h-[168px] w-full resize-none overflow-hidden border-0 bg-transparent p-0 text-sm leading-7 placeholder:text-[#4a2f20]/40 focus:outline-none focus:ring-0 [background-attachment:local] [background-image:repeating-linear-gradient(to_bottom,transparent_0,transparent_27px,#8f7c5f_27px,#8f7c5f_28px)]"
                         ></textarea>
@@ -92,7 +98,7 @@
                             <p class="text-xs text-[#4a2f20]/50" x-show="current.comments.length === 0">まだコメントはありません</p>
                         </div>
 
-                        {{-- コメント入力(画面上だけで動く。保存はまだ) --}}
+                        {{-- コメント入力 --}}
                         <h3 class="mt-5 text-sm font-semibold">コメントを書く</h3>
                         <textarea
                             rows="3"
@@ -101,7 +107,7 @@
                             class="mt-2 w-full resize-none rounded-xl border-2 border-[#5c3a28]/70 bg-[#f7ecd8] p-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#7d5236]"
                         ></textarea>
                         <div class="mt-2 flex justify-end">
-                            <button type="button" @click="addComment()" :disabled="!commentDraft.trim()"
+                            <button type="button" @click="addComment()" :disabled="!commentDraft.trim() || sending"
                                     class="rounded-lg bg-[#5c3a28] px-4 py-1.5 text-xs text-[#f7ecd8] disabled:opacity-40">送信</button>
                         </div>
                     </section>
@@ -117,7 +123,7 @@
                             <ul class="mt-2 space-y-2">
                                 <template x-for="t in sharedTodos" :key="t.id">
                                     <li class="flex items-start gap-3 rounded-lg bg-[#f7ecd8] px-3 py-2">
-                                        <button type="button" @click="t.done = !t.done" :aria-pressed="t.done" aria-label="完了にする"
+                                        <button type="button" @click="toggleTodo(t)" :aria-pressed="t.done" aria-label="完了にする"
                                                 class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 border-[#5c3a28] text-[10px] leading-none"
                                                 x-text="t.done ? '✓' : ''"></button>
                                         <div class="min-w-0 flex-1">
@@ -134,7 +140,7 @@
                             <ul class="mt-2 space-y-2">
                                 <template x-for="t in personalTodos" :key="t.id">
                                     <li class="flex items-start gap-3 rounded-lg bg-[#f7ecd8] px-3 py-2">
-                                        <button type="button" @click="t.done = !t.done" :aria-pressed="t.done" aria-label="完了にする"
+                                        <button type="button" @click="toggleTodo(t)" :aria-pressed="t.done" aria-label="完了にする"
                                                 class="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 border-[#5c3a28] text-[10px] leading-none"
                                                 x-text="t.done ? '✓' : ''"></button>
                                         <div class="min-w-0 flex-1">
@@ -355,7 +361,7 @@
             </label>
 
             <div class="pt-2 text-center">
-                <button type="submit" :disabled="!todoForm.title.trim()"
+                <button type="submit" :disabled="!todoForm.title.trim() || sending"
                         class="rounded-lg bg-[#a8987f] px-6 py-2 text-sm tracking-wider text-[#4a2c12] transition hover:bg-[#968669] disabled:opacity-40">
                     ＋追加する
                 </button>
@@ -364,8 +370,50 @@
     </div>
 </div>
 
+{{-- ===== 招待コードモーダル ===== --}}
+<div x-show="inviteOpen" x-cloak
+     x-transition.opacity.duration.300ms
+     @click="inviteOpen = false"
+     class="fixed inset-0 z-[60] bg-black/30"></div>
+<div x-show="inviteOpen" x-cloak
+     class="pointer-events-none fixed inset-0 z-[70] flex items-center justify-center p-6">
+    <div x-show="inviteOpen"
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="scale-95 opacity-0"
+         x-transition:enter-end="scale-100 opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="scale-100 opacity-100"
+         x-transition:leave-end="scale-95 opacity-0"
+         role="dialog" aria-modal="true" aria-label="友だちを招待"
+         class="pointer-events-auto relative w-full max-w-sm rounded-3xl bg-[#f5e4c3] px-8 pb-8 pt-8 shadow-xl">
+        <button type="button" @click="inviteOpen = false" aria-label="閉じる"
+                class="absolute left-5 top-5 text-3xl leading-none text-[#4a2c12]">×</button>
+        <h2 class="text-center text-xl tracking-widest">友だちを招待</h2>
+        <p class="mt-2 text-center text-xs leading-relaxed text-[#8a6a4a]">
+            このコードを友だちに伝えて、本棚の「新しい本」→「コードで参加」に入力してもらいます
+        </p>
+
+        <p class="mt-6 select-all rounded-2xl bg-white px-4 py-4 text-center text-2xl font-semibold tracking-[0.25em] min-[380px]:text-3xl min-[380px]:tracking-[0.3em]"
+           aria-label="招待コード" x-text="invite.code"></p>
+
+        <button type="button" @click="copyInvite()"
+                class="mx-auto mt-4 block rounded-full bg-[#a8987f] px-8 py-2 text-sm tracking-widest text-[#4a2c12] transition hover:bg-[#968669]"
+                x-text="copied ? 'コピーしました ✓' : 'コードをコピー'"></button>
+
+        <p class="mt-5 text-center text-xs text-[#8a6a4a]">
+            <span x-text="invite.count + ' / ' + invite.limit + '人が参加中'"></span>
+            <span x-show="inviteFull" class="ml-1 text-[#a33a2c]">(満員です)</span>
+        </p>
+    </div>
+</div>
+
+{{-- 通信に失敗したときのお知らせ --}}
+<div x-show="toast" x-cloak x-transition.opacity role="status"
+     class="fixed inset-x-0 bottom-6 z-[100] mx-auto w-fit max-w-[90%] rounded-full bg-[#4a2f20] px-5 py-2 text-xs text-[#f7ecd8] shadow-lg"
+     x-text="toast"></div>
+
 <script>
-    // 画面の動き(Alpine.js)。保存はまだしていないので、リロードすると内容は消える。
+    // 画面の動き(Alpine.js)。日記・コメント・やることは、サーバーに保存される。
     document.addEventListener('alpine:init', () => {
         const EMPTY = { weather: '', body: '', comments: [] };
 
@@ -375,15 +423,26 @@
             memberKey: config.members[0].key,    // 開いている日記の持ち主
             today: '',
             date: '',
-            entries: {},                         // 'メンバーkey|YYYY-MM-DD' => { weather, body, comments }
-            todos: [],
-            nextTodoId: 1,
+            entries: config.entries,             // 'メンバーkey|YYYY-MM-DD' => { weather, body, comments }
+            todos: config.todos,
             weatherOpen: false,
             calendarOpen: false,
             todoOpen: false,
+            inviteOpen: false,
+            invite: config.invite,
+            copied: false,
+            copyTimer: null,
             cal: { year: 0, month: 0 },
             commentDraft: '',
             todoForm: { title: '', assignee: 'all', due: '' },
+            sending: false,                      // コメント・やること送信中
+            toast: '',
+            toastTimer: null,
+            saveState: '',                       // '' | 'dirty' | 'saving' | 'saved' | 'error'
+            saveTimer: null,
+            dirty: {},                           // まだ保存していない日記のkey
+            flushing: false,
+            flushAgain: false,
             weekdays: ['日', '月', '火', '水', '木', '金', '土'],
             weathers: [
                 { value: 'sunny', emoji: '☀️', label: '晴れ' },
@@ -394,20 +453,44 @@
             init() {
                 this.today = this.iso(new Date());
                 this.date = this.today;
-                this.todos = config.todos.map((t, i) => ({
-                    id: i + 1,
-                    title: t.title,
-                    assignee: t.assignee,
-                    due: t.dueInDays === null ? null : this.shift(this.today, t.dueInDays),
-                    done: t.done,
-                }));
-                this.nextTodoId = this.todos.length + 1;
 
                 const refit = () => this.$nextTick(() => this.fit(this.$refs.body));
                 this.$watch('date', refit);
                 this.$watch('memberKey', refit);
                 this.$watch('view', refit);
                 refit();
+
+                // ページを閉じる・アプリを切り替えるときに、書きかけを保存する
+                document.addEventListener('visibilitychange', () => {
+                    if (document.visibilityState === 'hidden') this.flush(true);
+                });
+                window.addEventListener('pagehide', () => this.flush(true));
+            },
+
+            // ---- サーバーとの通信 ----
+            async api(method, path, payload, keepalive = false) {
+                const res = await fetch(config.base + path, {
+                    method: method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    },
+                    body: payload === undefined ? undefined : JSON.stringify(payload),
+                    credentials: 'same-origin',
+                    keepalive: keepalive,
+                });
+                if (!res.ok) {
+                    const error = new Error('HTTP ' + res.status);
+                    error.status = res.status;
+                    throw error;
+                }
+                return res.json();
+            },
+            notify(message) {
+                this.toast = message;
+                clearTimeout(this.toastTimer);
+                this.toastTimer = setTimeout(() => { this.toast = ''; }, 3500);
             },
 
             // ---- 日付まわり ----
@@ -448,18 +531,20 @@
             get editable() {
                 return this.currentMember.is_me;   // 自分の日記だけ書ける
             },
-            get current() {
-                return this.entries[this.memberKey + '|' + this.date] ?? EMPTY;
+            entryKey(memberKey = this.memberKey, date = this.date) {
+                return memberKey + '|' + date;
             },
-            ensure() {
-                const k = this.memberKey + '|' + this.date;
-                if (!this.entries[k]) {
-                    this.entries[k] = { weather: '', body: '', comments: [] };
+            get current() {
+                return this.entries[this.entryKey()] ?? EMPTY;
+            },
+            ensure(key = this.entryKey()) {
+                if (!this.entries[key]) {
+                    this.entries[key] = { weather: '', body: '', comments: [] };
                 }
-                return this.entries[k];
+                return this.entries[key];
             },
             hasEntry(s) {
-                const e = this.entries[this.memberKey + '|' + s];
+                const e = this.entries[this.entryKey(this.memberKey, s)];
                 return !!(e && (e.body.trim() || e.weather));
             },
             fit(el) {
@@ -470,15 +555,70 @@
             weatherEmoji(v) {
                 return this.weathers.find((w) => w.value === v)?.emoji ?? '';
             },
+            get saveLabel() {
+                return { dirty: '編集中…', saving: '保存中…', saved: '保存しました', error: '保存できませんでした' }[this.saveState] ?? '';
+            },
+
+            // 文字を打ったあと、少し待ってから保存する(打つたびには送らない)
+            queueSave() {
+                if (!this.editable) return;
+                this.dirty[this.entryKey()] = true;
+                this.saveState = 'dirty';
+                clearTimeout(this.saveTimer);
+                this.saveTimer = setTimeout(() => this.flush(), 800);
+            },
+            async flush(keepalive = false) {
+                clearTimeout(this.saveTimer);
+                if (this.flushing) {
+                    this.flushAgain = true;
+                    return;
+                }
+                this.flushing = true;
+                try {
+                    do {
+                        this.flushAgain = false;
+                        const keys = Object.keys(this.dirty);
+                        if (keys.length === 0) break;
+                        this.saveState = 'saving';
+                        for (const key of keys) {
+                            delete this.dirty[key];
+                            const entry = this.entries[key];
+                            try {
+                                await this.api('PUT', '/diary/' + key.split('|')[1], { weather: entry.weather, body: entry.body }, keepalive);
+                            } catch (e) {
+                                this.dirty[key] = true;   // 次に編集したとき、また送る
+                                this.saveState = 'error';
+                                return;
+                            }
+                        }
+                        this.saveState = Object.keys(this.dirty).length > 0 ? 'dirty' : 'saved';
+                    } while (this.flushAgain);
+                } finally {
+                    this.flushing = false;
+                }
+            },
             setWeather(v) {
                 this.ensure().weather = v;
                 this.weatherOpen = false;
+                this.dirty[this.entryKey()] = true;
+                this.flush();
             },
-            addComment() {
+            async addComment() {
                 const body = this.commentDraft.trim();
-                if (!body) return;
-                this.ensure().comments.push({ name: this.me.name, body: body });
-                this.commentDraft = '';
+                if (!body || this.sending) return;
+                const key = this.entryKey();
+                const ownerId = this.currentMember.id;
+                const date = this.date;
+                this.sending = true;
+                try {
+                    const comment = await this.api('POST', '/diary/' + ownerId + '/' + date + '/comments', { body: body });
+                    this.ensure(key).comments.push(comment);
+                    this.commentDraft = '';
+                } catch (e) {
+                    this.notify('コメントを送れませんでした。もう一度ためしてください');
+                } finally {
+                    this.sending = false;
+                }
             },
 
             // ---- カレンダー ----
@@ -540,20 +680,67 @@
                 this.todoForm = { title: '', assignee: 'all', due: '' };
                 this.todoOpen = true;
             },
-            addTodo() {
+            async addTodo() {
                 const title = this.todoForm.title.trim();
-                if (!title) return;
-                this.todos.push({
-                    id: this.nextTodoId++,
-                    title: title,
-                    assignee: this.todoForm.assignee,
-                    due: this.todoForm.due || null,
-                    done: false,
-                });
-                this.todoOpen = false;
+                if (!title || this.sending) return;
+                const assignee = this.members.find((m) => m.key === this.todoForm.assignee);
+                this.sending = true;
+                try {
+                    const todo = await this.api('POST', '/todos', {
+                        title: title,
+                        assignee_id: assignee ? assignee.id : null,
+                        due: this.todoForm.due || null,
+                    });
+                    this.todos.push(todo);
+                    this.todoOpen = false;
+                } catch (e) {
+                    this.notify('やることを追加できませんでした。もう一度ためしてください');
+                } finally {
+                    this.sending = false;
+                }
+            },
+            async toggleTodo(t) {
+                const next = !t.done;
+                t.done = next;   // 先に画面を変えて、失敗したら戻す
+                try {
+                    await this.api('PATCH', '/todos/' + t.id, { done: next });
+                } catch (e) {
+                    t.done = !next;
+                    this.notify('更新できませんでした。もう一度ためしてください');
+                }
+            },
+
+            // ---- 招待コード ----
+            get inviteFull() {
+                return this.invite.count >= this.invite.limit;
+            },
+            async copyInvite() {
+                const code = this.invite.code;
+                try {
+                    if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(code);
+                    } else {
+                        // https でないページでは clipboard API が使えないので、昔ながらの方法で
+                        const ta = document.createElement('textarea');
+                        ta.value = code;
+                        ta.style.position = 'fixed';
+                        ta.style.opacity = '0';
+                        document.body.appendChild(ta);
+                        ta.select();
+                        const ok = document.execCommand('copy');
+                        document.body.removeChild(ta);
+                        if (!ok) throw new Error('copy failed');
+                    }
+                    this.copied = true;
+                    clearTimeout(this.copyTimer);
+                    this.copyTimer = setTimeout(() => { this.copied = false; }, 2000);
+                } catch (e) {
+                    this.notify('コピーできませんでした。コードを長押ししてコピーしてください');
+                }
             },
 
             closeModals() {
+                this.inviteOpen = false;
                 this.weatherOpen = false;
                 this.calendarOpen = false;
                 this.todoOpen = false;

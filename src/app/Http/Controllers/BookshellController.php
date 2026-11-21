@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Book;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,12 +15,21 @@ class BookshellController extends Controller
     public function index()
     {
         $books = Auth::user()->books()->orderBy('book_user.created_at')->get()
-            ->map(fn ($book) => [
-                'id'     => $book->id,
-                'title'  => $book->title,
-                'color'  => self::COLORS[$book->id % count(self::COLORS)],
-                'height' => 170 + ($book->id * 17) % 70,
-            ])
+            ->map(function ($book) {
+                $lastRead = $book->pivot->last_read_at;
+
+                // 動きがあって、まだ開いていない(または開いた後に動きがあった)なら未読
+                $unread = $book->last_activity_at
+                    && (!$lastRead || $book->last_activity_at->gt(Carbon::parse($lastRead)));
+
+                return [
+                    'id'     => $book->id,
+                    'title'  => $book->title,
+                    'color'  => self::COLORS[$book->id % count(self::COLORS)],
+                    'height' => 170 + ($book->id * 17) % 70,
+                    'unread' => (bool) $unread,
+                ];
+            })
             ->all();
 
         return view('bookshells.index', compact('books'));
@@ -40,7 +50,7 @@ class BookshellController extends Controller
             'owner_id'     => Auth::id(),
         ]);
 
-        $book->members()->attach(Auth::id());
+        $book->members()->attach(Auth::id(), ['last_read_at' => now()]);
 
         return redirect()->route('bookshells.index');
     }
@@ -90,7 +100,7 @@ class BookshellController extends Controller
             return back()->withErrors(['code' => $error]);
         }
 
-        $book->members()->attach(Auth::id());
+        $book->members()->attach(Auth::id(), ['last_read_at' => now()]);
 
         return redirect()->route('bookshells.index');
     }

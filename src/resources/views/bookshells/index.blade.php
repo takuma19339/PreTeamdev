@@ -32,7 +32,7 @@
       @keydown.escape.window="del ? del = null : (found ? found = false : (create ? create = false : (join ? join = false : open = false)))"
       x-effect="document.body.classList.toggle('overflow-hidden', open || create || join || found || !!del)">
 
-    <main class="relative mx-auto max-w-md px-5 py-12">
+    <main class="relative mx-auto max-w-md px-5 pb-12 pt-24">
 
         {{-- 編集ボタン(右上) --}}
         <button type="button" @click="editing = !editing"
@@ -42,6 +42,16 @@
                     : 'border-[#b07a4a] text-[#8a6a4a] hover:bg-[#d6c28f]/60'">
             <span x-text="editing ? '完了' : '編集'">編集</span>
         </button>
+
+        {{-- ログアウト(左上) --}}
+<form method="POST" action="{{ route('logout') }}"
+      class="absolute left-5 top-5" x-show="!editing" x-cloak>
+    @csrf
+    <button type="submit"
+            class="min-h-11 px-2 text-sm tracking-widest text-[#8a6a4a] underline underline-offset-4 hover:text-[#4a2c12]">
+        ログアウト
+    </button>
+</form>
 
         {{-- タイトル --}}
         <header class="mb-10 text-center">
@@ -74,9 +84,13 @@
                             <div class="relative">
                                 <a href="{{ route('diary.show', $book['id']) }}"
                                    @click="if (editing) $event.preventDefault()"
-                                   class="flex w-12 items-center justify-center rounded-r-sm border-r-2 border-[#f5e6c8] py-5 text-lg tracking-widest text-[#f5e6c8] transition hover:-translate-y-1 [writing-mode:vertical-rl]"
+                                   class="relative flex w-12 items-center justify-center rounded-r-sm border-r-2 border-[#f5e6c8] py-5 text-lg tracking-widest text-[#f5e6c8] transition hover:-translate-y-1 [writing-mode:vertical-rl]"
                                    style="height: {{ $book['height'] }}px; background-color: {{ $book['color'] }};">
                                     {{ $book['title'] }}
+                                    @if (!empty($book['unread']))
+                                        <span class="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-[#e0453a] ring-2 ring-[#4a2c1c] [writing-mode:horizontal-tb]"
+                                        aria-label="新しい更新があります"></span>
+                                    @endif
                                 </a>
 
                                 <button type="button" x-show="editing" x-cloak
